@@ -1,0 +1,994 @@
+# Redis 配置文件示例。
+#
+# 注意：为了读取配置文件，Redis 必须以文件路径作为第一个参数启动：
+#
+# ./redis-server /path/to/redis.conf
+
+# 关于单位：当需要指定内存大小时，可以使用常见的表示法 1k 5GB 4M 等：
+#
+# 1k => 1000 字节
+# 1kb => 1024 字节
+# 1m => 1000000 字节
+# 1mb => 1024*1024 字节
+# 1g => 1000000000 字节
+# 1gb => 1024*1024*1024 字节
+#
+# 单位不区分大小写，因此 1GB 1Gb 1gB 都等价。
+
+################################## 包含文件 ###################################
+
+# 在此处包含一个或多个其他配置文件。这在你有一份标准模板需要应用到所有 Redis
+# 服务器，但又需要对少数服务器做不同配置时非常有用。被包含的文件也可以再包含
+# 其他文件，请谨慎使用。
+#
+# 注意：选项 "include" 不会被管理员命令 "CONFIG REWRITE"
+# 或 Redis Sentinel 重写。由于 Redis 总是使用最后处理的配置行作为配置指令的值，
+# 建议将 include 放在本文件的开头以避免运行时配置被覆盖。
+#
+# 如果你想用 include 来覆盖配置选项，最好把 include 放在文件末尾。
+#
+# 被包含的路径可以包含通配符。所有匹配的文件会按字母顺序包含。
+# 注意：如果包含路径包含通配符但在服务器启动时没有文件匹配，该 include 声明将
+# 被忽略且不会抛出错误。因此可以安全地从空目录包含通配符文件。
+#
+# include /path/to/local.conf
+# include /path/to/other.conf
+# include /path/to/fragments/*.conf
+#
+
+################################## 模块 #####################################
+
+# 在启动时加载模块。如果服务器无法加载模块将会中止启动。可以使用多个 loadmodule 指令。
+#
+# loadmodule /path/to/my_module.so
+# loadmodule /path/to/other_module.so
+# loadmodule /path/to/args_module.so [arg [arg ...]]
+
+################################## 网络 #####################################
+
+# 默认情况下，如果未指定 "bind" 配置指令，Redis 会监听宿主机上的所有可用网络接口。
+# 可以使用 "bind" 指令只监听一个或多个选定的接口，后面跟一个或多个 IP 地址。
+# 每个地址可以用 "-" 前缀，表示如果该地址不可用时 Redis 不会启动失败。
+# “不可用”只指该地址不对应任何网络接口。已被占用的地址会导致启动失败，
+# 不支持的协议会被静默跳过。
+#
+# 示例：
+#
+# bind 192.168.1.100 10.0.0.1     # 在两个特定的 IPv4 地址上监听
+# bind 127.0.0.1 ::1              # 在 IPv4 与 IPv6 本地回环上监听
+# bind * -::*                     # 像默认一样，监听所有可用接口
+#
+# ~~~ 警告 ~~~ 如果运行 Redis 的主机直接暴露在互联网上，绑定到所有接口是危险的，会将
+# 实例暴露给互联网的所有人。因此默认我们取消注释下面的 bind 指令，这将强制 Redis
+# 仅监听 IPv4 和 IPv6（如果可用）的本地回环地址（这意味着 Redis 只接受来自本机的连接）。
+#
+# 如果你确定希望实例监听所有接口，请注释掉下面这一行。
+#
+# 你还需要设置密码，除非你显式禁用了受保护模式。
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+bind 127.0.0.1 -::1
+
+# 默认情况下，出站连接（例如从副本到主节点、从 Sentinel 到实例、集群内部总线等）
+# 不会绑定到特定的本地地址。在大多数情况下，操作系统会根据路由和出站连接所用的接口
+# 处理该行为。
+#
+# 使用 bind-source-addr 可以配置用于绑定的特定地址，这可能会影响连接的路由方式。
+#
+# 示例：
+#
+# bind-source-addr 10.0.0.1
+
+# 受保护模式是一种安全防护层，旨在避免暴露在互联网上的 Redis 实例被访问和利用。
+#
+# 当受保护模式开启且默认用户没有密码时，服务器仅接受来自 IPv4 地址 (127.0.0.1)、IPv6 地址
+# (::1) 或 Unix 域套接字的本地连接。
+#
+# 默认情况下受保护模式为启用。只有在确认希望客户端来自其他主机连接且没有配置认证时，
+# 才应禁用它。
+protected-mode yes
+
+# Redis 使用默认的强化安全配置指令来减少普通用户的攻击面。因此，若干敏感的配置
+# 指令是不可变的，并且一些潜在危险的命令默认会被阻止。
+#
+# 控制 Redis 写入文件（例如 'dir' 和 'dbfilename'）且通常在运行时不修改的配置指令通过
+# 将其设为不可变来保护。
+#
+# 那些可能增加 Redis 攻击面且通常不会被普通用户调用的命令，默认情况下会被阻止。
+#
+# 这些配置可以通过将下列配置项设为下列其中一个值来暴露给：
+#
+# no    - 对任何连接都阻止（保持不可变）
+# yes   - 允许所有连接（无保护）
+# local - 仅允许本地连接。来源为 IPv4 地址 (127.0.0.1)、IPv6 地址 (::1) 或 Unix 域套接字。
+#
+# enable-protected-configs no
+# enable-debug-command no
+# enable-module-command no
+
+# 在指定端口上接受连接，默认端口为 6379（IANA #815344）。
+# 如果指定 port 为 0，则 Redis 不会监听 TCP 套接字。
+port 6379
+
+# TCP listen() backlog。
+#
+# 在高 QPS 场景需要较高的 backlog 以避免慢客户端导致的连接问题。
+# 注意 Linux 内核会将其静默截断为 /proc/sys/net/core/somaxconn 的值，
+# 因此需要同时提升 somaxconn 与 tcp_max_syn_backlog 以达到预期效果。
+tcp-backlog 511
+
+# Unix socket。
+#
+# 指定用于监听的 Unix socket 路径。默认无此项，若未指定 Redis 不会监听 Unix socket。
+#
+# unixsocket /run/redis.sock
+# unixsocketperm 700
+
+# 在客户端空闲 N 秒后关闭连接（0 表示禁用）
+timeout 0
+
+# TCP keepalive。
+#
+# 如果非零，使用 SO_KEEPALIVE 在无通信时向客户端发送 TCP ACK。
+# 用处：
+# 1) 检测死连接。
+# 2) 强制中间网络设备认为连接仍然存活。
+#
+# 在 Linux 上，该值（秒）即为发送 ACK 的周期。注意关闭连接需要两倍时间。
+# 在其它内核上，周期取决于内核配置。
+#
+# 一个合理值是 300 秒（Redis 3.2.1 起的默认）。
+tcp-keepalive 300
+
+# 应用 OS 特定机制为监听套接字打上指定 ID（用于高级路由/过滤）。
+#
+# 在 Linux 上，ID 表示连接 mark。
+# 在 FreeBSD 上，ID 表示 socket cookie ID。
+# 在 OpenBSD 上，ID 表示路由表 ID。
+#
+# 默认值为 0，表示不做标记。
+# socket-mark-id 0
+
+################################# TLS/SSL #####################################
+
+# 默认禁用 TLS/SSL。要启用，可使用 "tls-port" 指定 TLS 监听端口。若要在默认端口启用 TLS：
+#
+# port 0
+# tls-port 6379
+
+# 配置用于验证服务器端给客户端、主节点或集群对等体的 X.509 证书和私钥。
+# 这些文件应为 PEM 格式。
+#
+# tls-cert-file redis.crt
+# tls-key-file redis.key
+#
+# 如果私钥文件使用密码保护，可在此提供密码：
+#
+# tls-key-file-pass secret
+
+# 通常 Redis 使用同一证书用于服务器（接收连接）和客户端（作为复制或集群对等体发起连接）。
+#
+# 有时证书被标注为仅用于客户端或仅用于服务器。在这种情况下，可能希望为入站（服务器）和出站（客户端）
+# 使用不同证书。使用下面指令：
+#
+# tls-client-cert-file client.crt
+# tls-client-key-file client.key
+#
+# 如果私钥受密码保护，可在此提供：
+#
+# tls-client-key-file-pass secret
+
+# 配置 DH 参数文件以启用 Diffie-Hellman（DH）密钥交换，旧版本 OpenSSL (<3.0) 需要。
+# 新版本不需要且建议不要配置该项。
+#
+# tls-dh-params-file redis.dh
+
+# 配置用于验证 TLS/SSL 客户端和对等体的 CA 证书束或目录。Redis 要求明确配置至少一个，
+# 不会隐式使用系统配置。
+#
+# tls-ca-cert-file ca.crt
+# tls-ca-cert-dir /etc/ssl/certs
+
+# 默认情况下，连接到 TLS 端口的客户端（包括副本服务器）要求使用有效的客户端证书进行认证。
+#
+# 若指定 "no" 则不接受客户端证书；若指定 "optional" 则接受且在提供时必须有效，但非必需。
+#
+# tls-auth-clients no
+# tls-auth-clients optional
+
+# 默认情况下，Redis 副本不会尝试与主节点使用 TLS 建立连接。
+#
+# 使用下列指令启用复制链路上的 TLS：
+#
+# tls-replication yes
+
+# 默认情况下，Redis 集群总线使用明文 TCP。要为集群总线启用 TLS：
+#
+# tls-cluster yes
+
+# 默认只启用 TLSv1.2 与 TLSv1.3（推荐），不建议启用旧被弃用版本以减少攻击面。
+# 可以显式指定支持的 TLS 版本。允许值（不区分大小写）包括 "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"。
+# 例如只启用 TLSv1.2 和 TLSv1.3：
+#
+# tls-protocols "TLSv1.2 TLSv1.3"
+
+# 配置允许的密码套件。详见 ciphers(1ssl) 手册页。
+#
+# 注意：该配置仅适用于 <= TLSv1.2。
+#
+# tls-ciphers DEFAULT:!MEDIUM
+
+# 配置允许的 TLSv1.3 密码套件。详见手册页。
+#
+# tls-ciphersuites TLS_CHACHA20_POLY1305_SHA256
+
+# 选择密码套件时使用服务器偏好而不是客户端偏好。默认服务器遵循客户端偏好。
+#
+# tls-prefer-server-ciphers yes
+
+# 默认启用 TLS 会话缓存，以便支持的客户端能更快更便宜地重连。使用下列指令可禁用。
+#
+# tls-session-caching no
+
+# 更改缓存的默认 TLS 会话数。0 表示无限制。默认大小为 20480。
+#
+# tls-session-cache-size 5000
+
+# 更改缓存 TLS 会话的默认超时时间（秒）。默认 300 秒。
+#
+# tls-session-cache-timeout 60
+
+################################# GENERAL #####################################
+
+# 默认情况下 Redis 不以守护进程方式运行。如需守护进程，请设为 'yes'。
+# 注意当 Redis 由 upstart 或 systemd 管理时，此参数无效。
+daemonize no
+
+# 如果通过 upstart 或 systemd 运行，Redis 可以与监督树交互。选项：
+#   supervised no      - 不与监督交互
+#   supervised upstart - 通过将 Redis 置为 SIGSTOP 通知 upstart
+#                        需要在 upstart 配置中设置 "expect stop"
+#   supervised systemd - 启动时向 $NOTIFY_SOCKET 写入 READY=1 通知 systemd
+#                        并定期更新状态
+#   supervised auto    - 根据 UPSTART_JOB 或 NOTIFY_SOCKET 环境变量自动检测
+#
+# 注意：这些方法仅信号“进程已就绪”，不适用于持续的心跳检测。
+#
+# 默认 "no"。若在 systemd/upstart 下运行，可取消注释：
+#
+# supervised auto
+
+# 如果指定了 pid 文件，Redis 会在启动时写入并在退出时删除它。
+#
+# 当服务器以非守护进程运行且未指定 pid 文件时，不会创建 pid 文件。
+# 当守护进程化运行时，若未指定 pid 文件，默认写入 "/var/run/redis.pid"。
+#
+# 创建 pid 文件为 best-effort：若无法创建，服务器仍正常启动运行。
+#
+# 在现代 Linux 系统上，使用 "/run/redis.pid" 更加规范。
+pidfile /var/run/redis_6379.pid
+
+# 指定服务器日志等级：
+# debug (大量信息，适合开发/测试)
+# verbose (许多信息)
+# notice (适度，适合生产)
+# warning (仅非常重要/关键消息)
+# nothing (不记录)
+loglevel notice
+
+# 指定日志文件名。使用空字符串可强制日志输出到 stdout。
+# 注意：若使用 stdout 且守护进程化，日志会被重定向到 /dev/null
+logfile ""
+
+# 若要将日志发送到系统日志，请设置 'syslog-enabled' 为 yes，并根据需要修改其它 syslog 参数。
+# syslog-enabled no
+
+# 指定 syslog 身份标识。
+# syslog-ident redis
+
+# 指定 syslog facility。必须为 USER 或 LOCAL0-LOCAL7。
+# syslog-facility local0
+
+# 禁用内置的崩溃日志（可能在需要时产生更干净的 core dump），取消注释：
+#
+# crash-log-enabled no
+
+# 禁用崩溃日志中运行的快速内存检查（可能使 redis 更早终止），取消注释：
+#
+# crash-memcheck-enabled no
+
+# 设置数据库数量。默认数据库为 DB 0，可通过 SELECT <dbid> 切换（0 .. databases-1）。
+databases 16
+
+# 默认情况下，只有在日志输出到标准输出且 stdout 为 TTY 且 syslog 禁用时，才显示 ASCII 艺术 logo。
+# 若想始终在启动日志中显示 logo（旧版本行为），设置为 yes。
+always-show-logo no
+
+# 为避免在服务器日志中记录个人身份信息（PII），取消注释：
+#
+# hide-user-data-from-log yes
+
+# 默认 Redis 会修改进程标题（在 'top' 和 'ps' 中可见）以提供运行时信息。可设为 no 保持原始进程名。
+set-proc-title yes
+
+# 修改进程标题时使用的模板。
+#
+# 模板变量以大括号表示，支持：
+#
+# {title}           进程执行名称（父进程）或子进程类型
+# {listen-addr}     绑定地址或 '*' 后跟 TCP 或 TLS 端口监听，或 Unix socket
+# {server-mode}     特殊模式，如 "[sentinel]" 或 "[cluster]"
+# {port}            TCP 监听端口，或 0
+# {tls-port}        TLS 监听端口，或 0
+# {unixsocket}      Unix 域套接字，或 ""
+# {config-file}     使用的配置文件名
+#
+proc-title-template "{title} {listen-addr} {server-mode}"
+
+# 设置用于字符串比较操作的本地环境，同时影响 Lua 脚本性能。
+# 空字符串表示从环境变量派生 locale。
+locale-collate ""
+
+################################ SNAPSHOTTING  ################################
+
+# 将数据库保存到磁盘。
+#
+# save <seconds> <changes> [<seconds> <changes> ...]
+#
+# Redis 会在指定秒数内发生至少指定次写操作时触发保存。
+#
+# 可以通过传入单个空字符串参数完全禁用快照：
+#
+# save ""
+#
+# 默认情况下（若未另行指定），Redis 会在以下条件下保存：
+#   * 3600 秒（1 小时）内至少 1 次写操作
+#   * 300 秒（5 分钟）内至少 100 次写操作
+#   * 60 秒内至少 10000 次写操作
+#
+# 可通过取消注释来显式设置：
+#
+# save 3600 1 300 100 60 10000
+
+# 默认情况下，如果启用了 RDB 快照（至少有一个 save 点）且最近的后台保存失败，
+# Redis 将停止接受写命令。这可以用更强烈的方式让用户注意到数据未正确持久化的问题。
+#
+# 若后台保存进程恢复工作，Redis 会自动允许写操作。
+#
+# 若你已设置了完善的监控和持久化机制，可能希望禁用此功能以在磁盘/权限出问题时继续提供服务。
+stop-writes-on-bgsave-error yes
+
+# 是否在生成 RDB 时对字符串对象使用 LZF 压缩？默认启用，通常能节省空间且值得。
+# 若希望在保存子进程减少 CPU 使用，可设置为 no，但数据文件会更大（若有可压缩内容）。
+rdbcompression yes
+
+# 从 RDB 5 版起，文件末尾增加 CRC64 校验和。增加抗损坏能力但在保存/加载时有约 10% 的性能开销。
+# 若禁用则生成的 RDB 文件校验和为 0（加载时跳过检查）。
+rdbchecksum yes
+
+# 加载 RDB 或 RESTORE payload 时是否启用完全的 sanitize 检查（ziplist/listpack 等）。
+# 这减少后续断言或崩溃的概率。
+# 选项：
+#   no      - 从不执行完全 sanitize
+#   yes     - 始终执行完全 sanitize
+#   clients - 仅针对用户连接执行完全 sanitize（排除：RDB 文件、从主接收的 RESTORE、具有 skip-sanitize-payload ACL 标志的连接）
+# 默认应为 'clients'，但目前为兼容集群重分片暂设为 'no'。
+#
+# sanitize-dump-payload no
+
+# RDB 文件名
+dbfilename dump.rdb
+
+# 在未启用持久化（既无 AOF 也无 RDB）的实例中，是否在复制过程中删除用于复制的 RDB 文件。
+# 默认禁用。某些合规或安全要求下，可能希望尽快删除这些文件。
+rdb-del-sync-files no
+
+# 工作目录。
+#
+# 数据库文件将写入此目录，文件名由 dbfilename 指定。
+# AOF 文件也会在此目录下创建。
+dir ./
+
+################################# REPLICATION #################################
+
+# 主从复制。使用 replicaof 将本实例设为另一 Redis 的副本。
+#
+# replicaof <masterip> <masterport>
+
+# 若主节点受密码保护（使用 requirepass），可通过 masterauth 指令在副本连接主前先认证。
+#
+# masterauth <master-password>
+#
+# 若使用 Redis ACL（6+），且 default 用户不具备 PSYNC 或其它复制所需命令权限，建议配置一个专门用户用于复制并在配置中使用：
+#
+# masteruser <username>
+#
+# 指定后，副本会使用新形式的 AUTH：AUTH <username> <password> 来认证。
+
+# 当副本失去与主的连接或复制仍在进行时，副本有两种行为：
+#
+# 1) 若 replica-serve-stale-data 为 'yes'（默认），副本仍可响应客户端请求，数据可能是过期的或为空（若首次同步）。
+# 2) 若设置为 'no'，副本将对所有数据访问命令返回错误 "MASTERDOWN Link with MASTER is down and replica-serve-stale-data is set to 'no'"
+#    但会允许 INFO、REPLICAOF、AUTH、SHUTDOWN、REPLCONF、ROLE、CONFIG、SUBSCRIBE、UNSUBSCRIBE、PSUBSCRIBE、PUNSUBSCRIBE、PUBLISH、PUBSUB、COMMAND、POST、HOST 和 LATENCY 等命令。
+replica-serve-stale-data yes
+
+# 可配置副本是否允许写入。写到副本可能用于存储短期数据，但在重同步时会被覆盖或删除。
+# 自 Redis 2.6 起，副本默认是只读的。
+replica-read-only yes
+
+# 同步策略：disk（写入磁盘）或 socket（直接通过套接字发送）。
+#
+# 新副本或无法通过增量同步继续的副本需要做全量同步（full synchronization），
+# 主会传输一个 RDB 文件给副本。传输方式有两类：
+#
+# 1) Disk-backed: 主在子进程中把 RDB 写到磁盘，然后父进程增量传输该文件给副本。
+# 2) Diskless: 主子进程直接把 RDB 写到副本套接字，不经磁盘。
+#
+# disk-backed 能在生成 RDB 时排队服务多个副本；diskless 则会在传输开始后将到达的新副本排队等待下次传输。
+repl-diskless-sync yes
+
+# 启用 diskless 时，主等待指定秒数后再启动传输，以便更多副本加入并并行传输。默认 5 秒。
+repl-diskless-sync-delay 5
+
+# 若启用延迟，达到指定数目的副本连接后可以提前开始；0 表示不做限制（等待满延迟）。
+repl-diskless-sync-max-replicas 0
+
+# -----------------------------------------------------------------------------
+# 警告：在此配置下，副本不会立即在本地存储 RDB，可能在故障转移期间造成数据丢失。
+# RDB diskless 加上不处理 I/O 的模块在初次同步阶段若发生 I/O 错误可能导致 Redis 终止。
+# -----------------------------------------------------------------------------
+#
+# 副本可以选择直接从套接字解析 RDB，或先把 RDB 保存到文件再读取。
+#
+# 磁盘通常比网络慢，保存/加载会增加复制时间并增加主的 Copy-on-Write 内存使用。
+# 但从套接字解析时，若要避免数据丢失，必须等新数据集完全加载到内存后才替换当前数据集，这会占用更高内存。
+# 因此提供以下选项：
+#
+# "disabled"    - 不使用 diskless load（先存到磁盘）
+# "swapdb"      - 在解析套接字数据时保留当前数据库内容在 RAM，解析完成后再切换。
+#                 在此模式下副本在同步时仍可服务当前数据集（在某些情形下无法识别相同复制历史的主）。
+#                 需足够内存，否则可能面临 OOM。
+# "on-empty-db" - 仅当当前数据集为空时使用 diskless load（更安全，避免并存旧/新数据集）。
+repl-diskless-load disabled
+
+# 主向副本发送 PING 的间隔；可通过 repl-ping-replica-period 修改。默认 10 秒。
+#
+# repl-ping-replica-period 10
+
+# 以下选项设定复制相关的超时时间（秒）：
+#
+# 1) SYNC 期间的大块传输 I/O（从副本视角）。
+# 2) 从副本视角的主超时（数据、ping）。
+# 3) 从主视角的副本超时（REPLCONF ACK ping）。
+#
+# 确保该值大于 repl-ping-replica-period，否则在低流量时会误判超时。默认 60 秒。
+#
+# repl-timeout 60
+
+# 在 SYNC 后是否禁用副本 socket 的 TCP_NODELAY？
+#
+# 选择 "yes" 会使用更少的 TCP 包和更少带宽，但可能使副本侧数据出现延迟（Linux 默认配置下最高可达 40ms）。
+# 选择 "no" 可降低延迟但使用更多带宽。默认优化低延迟。
+repl-disable-tcp-nodelay no
+
+# 设置复制 backlog 大小。backlog 为缓冲区，在副本断开一段时间后累积数据，
+# 使得副本重新连接时常可采用部分重同步而非全量重传。
+#
+# backlog 较大则副本可承受更长断开时间并仍能做部分重同步。
+#
+# backlog 仅在至少有一个副本连接时分配。
+#
+# repl-backlog-size 1mb
+
+# 当主长时间没有连接的副本时，会释放 backlog。此项配置从最后一个副本断开开始经过多少秒后释放缓冲。
+#
+# 注意副本端永不因超时释放 backlog（副本可能被提升为主），因此副本端应始终累积 backlog。
+#
+# 0 表示永不释放。
+#
+# repl-backlog-ttl 3600
+
+# 在 fullsync 期间，主可能同时发送 RDB 文件与复制流，要求副本在 RDB 完成加载前对复制流进行缓冲。
+# 下列配置控制副本在 fullsync 期间可累积的复制流最大量。
+#
+# 当副本达到该限额时将停止继续累积数据。若该值为 0，则继承 master 端 client-output-buffer-limit <replica> 的硬限。
+#
+# replica-full-sync-buffer-limit 0
+
+# 副本优先级（用于 Sentinel 选择提升目标），值越低优先级越高。
+# 特殊值 0 表示该副本不能被提升为主（永远不会被 Sentinel 选为提升对象）。
+replica-priority 100
+
+# 传播错误行为（propagation-error-behavior）控制当在处理从主接收的复制流或加载 AOF 时遇到错误的行为。
+# 默认行为是忽略此类错误继续处理命令以保持兼容，但若希望确保无数据分叉，应设为 'panic'（或 'panic-on-replicas'）。
+#
+# propagation-error-behavior ignore
+
+# 副本在无法将从主接收的写命令写入磁盘时的行为。默认 'no'（在此情形会崩溃）；
+# 可改为 'yes' 以兼容旧版本（仅记录警告并继续执行），但不推荐更改默认值。
+#
+# replica-ignore-disk-write-errors no
+
+# -----------------------------------------------------------------------------
+# 默认情况下，Redis Sentinel 在其报告中包含所有副本。可以将某副本从 Sentinel 报告中排除。
+# 未被公布的副本在 'sentinel replicas <master>' 中不会出现，也不会被 Sentinel 的客户端发现。
+#
+# 该选项不改变 replica-priority；即使 replica-announced 设置为 'no'，
+# 副本仍可被提升（除非 replica-priority 为 0）。
+#
+# replica-announced yes
+
+# 可配置：当主连接少于 N 个副本且这些副本延迟小于等于 M 秒时，主停止接受写。
+# N 个副本需处于 "online" 状态。
+#
+# 例如要求至少 3 个副本且延迟 <= 10 秒：
+#
+# min-replicas-to-write 3
+# min-replicas-max-lag 10
+#
+# 将任一项设为 0 即禁用本特性。
+#
+# 默认 min-replicas-to-write = 0，min-replicas-max-lag = 10。
+
+# 主能以不同方式列出其附加的副本地址/端口（在 INFO replication 与 ROLE 输出中）。
+# 副本通常报告的 IP/port 来源：
+# IP：通过检查副本套接字的 peer 地址自动检测。
+# Port：副本在复制握手中报告其监听端口。
+#
+# 在端口转发或 NAT 场景下，副本可能通过不同的公/私地址可达，可用下列选项在副本端指定向主报告的地址/端口：
+#
+# replica-announce-ip 5.5.5.5
+# replica-announce-port 1234
+
+############################### KEYS TRACKING #################################
+
+# Redis 实现了 server-assisted 的客户端缓存（client side caching）支持，
+# 通过失效表记录哪些客户端缓存了哪些键，以便在键变化时向客户端发送失效通知。
+# 详见：https://redis.io/docs/latest/develop/use/client-side-caching/
+#
+# 启用 tracking 的客户端会假定所有只读查询被缓存，Redis 将在失效表中记录信息。
+# 若工作负载以读取为主，服务器为追踪大量客户端缓存键可能使用更多内存，
+# 可通过 tracking-table-max-keys 设置最大条目数（默认 1M）。达到限制后，Redis 会驱逐失效表条目以回收内存。
+#
+# 设置为 0 表示不限制。
+#
+# tracking-table-max-keys 1000000
+
+################################## SECURITY ###################################
+
+# 警告：Redis 很快，攻击者每秒可能尝试数百万密码。请使用强密码（可从 /dev/urandom 生成长随机串）。
+#
+# Redis ACL 用户定义格式：
+#
+#   user <username> ... acl rules ...
+#
+# 例如：
+#
+#   user worker +@list +@connection ~jobs:* on >ffa9203c493aa99
+#
+# 特殊用户名 "default" 代表新连接。若该用户有 "nopass" 规则，则新连接会立即以 default 用户认证。
+# 否则连接初始为未认证状态，需要 AUTH 或 HELLO 的 AUTH 选项进行认证。
+#
+# ACL 规则说明（部分）：
+#  on/off            启用/禁用用户
+#  skip-sanitize-payload / sanitize-payload  控制 RESTORE 时是否跳过 payload sanitize
+#  +<command> / -<command>  允许/拒绝指定命令（支持用 '|' 表示子命令）
+#  +@<category> / -@<category>  允许/拒绝整个命令类别（如 @admin, @set, @sortedset 等）
+#  ~<pattern>        添加允许的键模式（glob 风格）
+#  %R~<pattern>      添加允许读取的键模式
+#  %W~<pattern>      添加允许写入的键模式
+#  ><password>       添加密码到用户的有效密码列表
+#  <<password>       从用户密码列表中移除密码
+#  nopass            清空密码并标记为无需密码（任意密码均可通过）
+#  resetpass         清空密码并去掉 nopass 标志
+#  reset             执行 resetpass, resetkeys, resetchannels, allchannels (若 acl-pubsub-default 设置), off, clearselectors, -@all
+#  (<options>)       创建并附加一个 selector（在括号内指定选项，空格分隔）
+#  clearselectors    清除所有 selector（不影响 root 权限）
+#
+# ACL 规则按从左到右顺序处理，添加/删除规则的顺序将影响最终权限。
+#
+# 以下是命令类别列表（示例）：
+# * keyspace, read, write, admin, dangerous, connection, blocking, fast, slow, pubsub, transaction, scripting, set, sortedset, list, hash, string, bitmap, hyperloglog, geo, stream
+#
+# 更多 ACL 配置见：https://redis.io/docs/latest/operate/oss_and_stack/management/security/acl/
+
+# ACL 日志（ACL LOG）跟踪失败命令和认证事件，用于排查被 ACL 阻止的命令。
+# ACL Log 存储于内存，可用 ACL LOG RESET 回收内存。定义 ACL 日志最大条目长度（字节）。
+acllog-max-len 128
+
+# 使用外部 ACL 文件
+#
+# 可将用户配置放在独立文件中，格式与 redis.conf 内相同。两种方法不能混用：
+# 若在 redis.conf 中配置用户同时启用外部 aclfile，服务器将拒绝启动。
+#
+# aclfile /etc/redis/users.acl
+
+# 重要说明：从 Redis 6 起，requirepass 只是对新 ACL 系统的兼容层。其效果相当于设置 default 用户的密码。
+# requirepass 与 aclfile / ACL LOAD 命令不兼容，可能导致 requirepass 被忽略。
+#
+# requirepass foobared
+
+# 新用户默认权限较严格（等价于 'off resetkeys -@all'）。
+# 从 Redis 6.2 起可用 acl-pubsub-default 管理新用户的 Pub/Sub 权限：
+# allchannels（允许），resetchannels（撤销所有），默认 7.0 起为 'resetchannels'。
+#
+# acl-pubsub-default resetchannels
+
+# 命令重命名（已弃用，建议以 ACL 替代）。
+#
+# 可将危险命令改名为难以猜测的名字，或重命名为空字符串以彻底禁用。
+#
+# 例如：
+# rename-command CONFIG b840fc02d524045429941cc15f59e41cb7be6c52
+# rename-command CONFIG ""
+#
+# 注意：对 AOF 或复制流中记录的命令改名可能造成问题。
+
+################################### CLIENTS ####################################
+
+# 设置最大同时连接客户端数。默认 10000。若 Redis 无法调整进程文件限制至该值，
+# 则 maxclients 设为当前文件限制减 32（Redis 为内部用途保留若干 fd）。
+#
+# 达到限制时 Redis 将关闭新连接并返回错误 'max number of clients reached'。
+#
+# 注意：在 Redis Cluster 场景下，集群总线也会占用连接（每个节点两个连接），需据此调整限制。
+#
+# maxclients 10000
+
+############################## MEMORY MANAGEMENT ################################
+
+# 设置内存使用上限（字节）。当达到该限制时，Redis 会按选定的淘汰策略尝试移除键（参见 maxmemory-policy）。
+#
+# 若无法按策略移除键，或策略为 'noeviction'，写操作（如 SET、LPUSH 等）将返回错误，但只读命令仍可执行。
+#
+# 该选项常用于将 Redis 用作 LRU/LFU 缓存或为实例设定硬上限（使用 'noeviction'）。
+#
+# 警告：若实例有副本，复制所需的输出缓冲大小会从已用内存计数中扣除，以避免网络问题导致反复驱逐。
+#
+# maxmemory <bytes>
+
+# MAXMEMORY 策略：达到上限时 Redis 如何选择移除键：
+#
+# volatile-lru -> 近似 LRU，仅移除设置了过期时间的键。
+# allkeys-lru  -> 近似 LRU，移除任意键。
+# volatile-lfu -> 近似 LFU，仅移除设置了过期时间的键。
+# allkeys-lfu  -> 近似 LFU，移除任意键。
+# volatile-random -> 随机移除带过期时间的键。
+# allkeys-random -> 随机移除任意键。
+# volatile-ttl -> 移除 TTL 最近到期的键（最小 TTL）。
+# noeviction   -> 不移除任何键，写操作返回错误。
+#
+# 默认：
+# maxmemory-policy noeviction
+
+# LRU/LFU 和 minimal TTL 是近似算法，可通过样本数调整精度/性能。默认采样 5 个键。
+# 可设为 1..64。
+maxmemory-samples 5
+
+# 淘汰处理的“十acity”（tenacity）用于在高写流量下调整处理频率。
+# 值越高越倾向于不考虑延迟而更积极地处理淘汰。
+# 0 = 最低延迟，10 = 默认，100 = 忽略延迟处理。
+maxmemory-eviction-tenacity 10
+
+# 从 Redis 5 起，默认副本会忽略其 maxmemory（除非被提升为主）。因此主端负责淘汰并发送 DEL 到副本。
+# 若副本可写或你希望副本使用不同内存限制并保证写操作幂等，可更改此行为。
+#
+# replica-ignore-maxmemory yes
+
+# Redis 通过两种方式回收过期键：访问时懒惰回收，以及后台的“active expire”周期扫描回收。
+# 默认 expire 周期努力目标是避免超过 10% 的过期键留在内存，并避免消耗超过 25% 的时间。
+# 可通过 active-expire-effort 调整努力值（1..10）。
+#
+# active-expire-effort 1
+
+############################# LAZY FREEING ####################################
+
+# Redis 有两种删除键的方式：DEL（阻塞，可能耗时）和 UNLINK（异步后台释放）。
+# 对于包含数百万元素的大对象，DEL 会阻塞很久，因此提供 UNLINK/ASYNC 以后台释放内存。
+#
+# 以下情况会触发服务器端的删除操作，默认使用阻塞行为（如 DEL），但可以配置为异步：
+#
+# 1) 淘汰（maxmemory 策略）
+# 2) 过期（EXPIRE）
+# 3) 命令副作用（如 RENAME、SUNIONSTORE、SORT STORE 等）
+# 4) 复制中的全量重同步（加载新 RDB）
+#
+# 配置项（默认均为 no）：
+lazyfree-lazy-eviction no
+lazyfree-lazy-expire no
+lazyfree-lazy-server-del no
+replica-lazy-flush no
+
+# 可将 DEL 命令默认行为改为 UNLINK：
+lazyfree-lazy-user-del no
+
+# FLUSHDB、FLUSHALL、SCRIPT FLUSH、FUNCTION FLUSH 支持 SYNC/ASYNC 标志，若未传入标志则使用此默认：
+lazyfree-lazy-user-flush no
+
+################################ THREADED I/O #################################
+
+# Redis 大多是单线程的，但存在若干侧线程用于 UNLINK、慢 I/O 等任务。
+#
+# 现在也可将客户端 socket 的读写放到 I/O 线程中（尤其写操作慢时效果显著）。
+#
+# 默认禁用线程。建议仅在多核 >=4 的机器上启用，并保留至少一个空闲核。
+#
+# 启用示例（4 个线程）：
+# io-threads 4
+#
+# 设置为 1 表示只用主线程（传统模式）。启用后可对读、写、协议解析使用线程。
+#
+# 若要用 redis-benchmark 测试线程加速，记得在 benchmark 端也用 --threads 匹配线程数量。
+
+############################ KERNEL OOM CONTROL ##############################
+
+# 在 Linux 上可提示内核 OOM 杀死优先级（oom_score_adj）。
+#
+# 启用后，Redis 会根据角色调整各进程的 oom_score_adj 值，尽量让后台子进程优先被杀，副本优先被杀于主。
+#
+# 支持选项：
+# no:       不修改 oom-score-adj（默认）。
+# yes:      相当于 "relative"。
+# absolute: 按 oom-score-adj-values 写入内核。
+# relative: 相对于进程启动时的初始值应用（并裁剪到 -1000..1000）。
+oom-score-adj no
+
+# 当使用 oom-score-adj 时，指定 master, replica, background child 的具体值（范围 -2000..2000）。
+oom-score-adj-values 0 200 800
+
+#################### KERNEL transparent hugepage CONTROL ######################
+
+# 通常内核的 Transparent Huge Pages (THP) 为 "madvise" 或 "never"。若为 "always"，
+# Redis 会尝试为 redis 进程禁用它以避免 fork/CoW 相关延迟问题。
+# 若需保持启用，可将此项设为 "no" 并将内核全局设置为 "always"。
+disable-thp yes
+
+############################## APPEND ONLY MODE ###############################
+
+# 默认 Redis 使用异步 RDB 快照持久化。AOF 提供更高的耐久性（在默认 everysec 下可将写丢失缩小至一秒）。
+#
+# AOF 与 RDB 可同时启用。若启动时启用 AOF，Redis 会优先加载 AOF。
+#
+# 在已有数据库的配置文件中更改该值并重启可能导致数据丢失；建议在运行时用 CONFIG 修改并转换。
+#
+# appendonly  no|yes
+appendonly no
+
+# AOF 基础文件名（Redis 7+ 使用一组文件：base 文件（RDB/AOF）与增量文件及 manifest）。
+appendfilename "appendonly.aof"
+
+# 存放 AOF 相关持久化文件的目录（appenddirname）
+appenddirname "appendonlydir"
+
+# fsync 策略：
+# no       - 不调用 fsync（由操作系统决定何时落盘）。更快。
+# always   - 每次写入后 fsync。最慢但最安全。
+# everysec - 每秒 fsync 一次（折中，默认）。
+appendfsync everysec
+
+# 当 AOF fsync 策略为 always/everysec 且后台保存或 AOF 重写发生大量 I/O 时，
+# 某些 Linux 配置下主进程可能在 fsync() 阶段被长时间阻塞。为减轻该问题，可在重写期间阻止主进程调用 fsync()：
+#
+# no-appendfsync-on-rewrite yes|no
+no-appendfsync-on-rewrite no
+
+# 自动 AOF 重写
+# 当 AOF 文件较上次重写后增长达到百分比阈值并且超过最小尺寸时触发 BGREWRITEAOF。
+auto-aof-rewrite-percentage 100
+auto-aof-rewrite-min-size 64mb
+
+# 启动时 AOF 末尾可能因系统崩溃而被截断。若设置 aof-load-truncated = yes，则尽可能加载并启动（并记录日志）；
+# 若为 no 则遇到截断会以错误退出，需用 redis-check-aof 修复后再启动。
+aof-load-truncated yes
+
+# Redis 可在 append-only base 文件中使用 RDB 或 AOF 格式。RDB 格式更快更高效。
+aof-use-rdb-preamble yes
+
+# 是否在 AOF 中记录时间戳注释以支持按时间点恢复（会改变 AOF 格式）。
+aof-timestamp-enabled no
+
+################################ SHUTDOWN #####################################
+
+# 关闭时等待副本赶上最多等待秒数。用于在无磁盘备份的部署减少数据丢失风险。
+# shutdown-timeout 10
+
+# 当收到 SIGINT 或 SIGTERM，默认会触发关闭流程，并在已配置 save 点时阻塞式写入 RDB。
+# 可选参数：
+# default:  若配置了 save 点则保存 RDB，并等待副本赶上。
+# save:     强制保存 DB（即使无 save 点）。
+# nosave:   禁止保存 DB。
+# now:      跳过等待副本。
+# force:    忽略通常阻止退出的错误。
+#
+# 示例："nosave force now"
+#
+# shutdown-on-sigint default
+# shutdown-on-sigterm default
+
+################ NON-DETERMINISTIC LONG BLOCKING COMMANDS #####################
+
+# 对 EVAL 脚本、函数及部分模块命令的最大执行时间（毫秒），超过该阈值 Redis 会开始对大多数命令返回 BUSY 错误。
+# 在此状态下仅允许少量命令执行（如 SCRIPT KILL、FUNCTION KILL、SHUTDOWN NOSAVE 等）。
+#
+# 默认 5000 毫秒（5 秒）。可设为 0 或负值以禁用（不间断执行）。
+#
+# lua-time-limit 5000
+# busy-reply-threshold 5000
+
+################################ REDIS CLUSTER  ###############################
+
+# 普通 Redis 实例不能加入 Redis Cluster；只有以 cluster 模式启动的节点能作为集群节点。
+# 启用集群支持：
+#
+# cluster-enabled yes
+
+# 每个集群节点都有一个 cluster 配置文件（由节点自动创建与管理），不应手动编辑。
+# cluster-config-file nodes-6379.conf
+
+# 集群节点超时（毫秒）：节点被判定为失败所需不可达时间。多数内部时限为该值的倍数。
+# cluster-node-timeout 15000
+
+# cluster port（集群总线端口）。默认 0 表示 client port + 10000。若指定需在 cluster meet 时明确使用该端口。
+# cluster-port 0
+
+# 副本在故障时是否尝试 failover 取决于数据新旧程度（通过两项检查：offset 排名与与主的最后交互时间）。
+#
+# 第二项可以通过 cluster-replica-validity-factor 调整：
+# 若 last interaction 时间超过 (node-timeout * cluster-replica-validity-factor) + repl-ping-replica-period，
+# 则副本不会发起 failover。
+#
+# cluster-replica-validity-factor 10
+
+# 副本可迁移到孤立的主以提高可用性，受 migration barrier 限制（默认 1）。
+# cluster-migration-barrier 1
+# cluster-allow-replica-migration yes
+
+# 当检测到至少一个哈希槽未被覆盖时，默认集群节点停止接受查询（确保一致性）。
+# 若希望局部可用，可设置：
+# cluster-require-full-coverage yes
+
+# 若设置为 yes，可在集群处于 down 状态时仍允许节点提供读服务（若节点认为它拥有这些槽）。
+# cluster-allow-reads-when-down no
+
+# pubsub 分片在 down 状态时是否仍可服务（若认为拥有槽）。
+# cluster-allow-pubsubshard-when-down yes
+
+# 集群连接发送缓冲限制（字节）。当某个链接的发送缓冲超过限制将被释放。
+# cluster-link-sendbuf-limit 0
+
+# 集群可自定义对外公布的 hostname（用于 SNI 或 DNS 路由），通过 cluster-announce-* 系列配置进行 NAT/Docker 支持。
+# cluster-announce-hostname ""
+
+# 集群可配置一个可读的 nodename，用于调试与跨节点事件上报。
+# cluster-announce-human-nodename ""
+
+# 控制集群兼容性抽样比率（0-100）用于抽样检查命令兼容性以检测跨槽等约束。
+# cluster-compatibility-sample-ratio 0
+
+# 集群 Docker/NAT 支持：当节点地址被 NAT 或端口转发，需静态配置外网可达的地址/端口：
+# cluster-announce-ip, cluster-announce-port, cluster-announce-tls-port, cluster-announce-bus-port
+#
+# 示例：
+# cluster-announce-ip 10.1.1.5
+# cluster-announce-tls-port 6379
+# cluster-announce-port 0
+# cluster-announce-bus-port 6380
+
+########################## CLUSTER DOCKER/NAT support  ########################
+
+# 上文已述（重复说明可见原文件）。若 tls-cluster = yes 且 cluster-announce-tls-port 省略或为 0，
+# 则 cluster-announce-port 指代 TLS 端口。
+
+################################## SLOW LOG ###################################
+
+# Slow Log 用于记录执行时间超过指定微秒数的命令（仅计执行时间，不含 I/O）。
+# slowlog-log-slower-than 以微秒为单位，-1 禁用，0 记录所有命令。
+slowlog-log-slower-than 10000
+
+# slowlog 最大长度（无严格上限，但会占内存）。
+slowlog-max-len 128
+
+################################ LATENCY MONITOR ##############################
+
+# 延迟监控子系统采样运行时操作以收集延迟来源数据，可通过 LATENCY 命令获取报告。
+# 仅记录执行时间 >= latency-monitor-threshold（毫秒）。设为 0 则禁用。
+latency-monitor-threshold 0
+
+################################ LATENCY TRACKING ##############################
+
+# 扩展延迟监控跟踪 per-command 延迟分布并通过 INFO latencystats 导出百分位。
+# 默认启用（开销极小）。
+# latency-tracking yes
+# latency-tracking-info-percentiles 50 99 99.9
+
+############################# EVENT NOTIFICATION ##############################
+
+# Redis 可以通过 Pub/Sub 向客户端通知 keyspace 事件。详见：
+# https://redis.io/docs/latest/develop/use/keyspace-notifications/
+#
+# 事件类别以单字符表示（如 K, E, g, $, l, s, h, z, x, e, n, t, d, m, A 等）。
+# notify-keyspace-events 接受由这些字符组成的字符串，空字符串表示禁用通知。
+notify-keyspace-events ""
+
+############################### ADVANCED CONFIG ###############################
+
+# 小哈希和 listpack 阈值配置（用于内存优化的特殊编码）。
+hash-max-listpack-entries 512
+hash-max-listpack-value 64
+
+# 列表内部节点最大尺寸或最大元素数，负值表示按字节上限（-2 表示 8KB，-1 表示 4KB）。
+list-max-listpack-size -2
+
+# 列表压缩深度（quicklist 压缩）。
+list-compress-depth 0
+
+# 集合的 intset 编码阈值（当元素为 64 位整数字符串时使用）。
+set-max-intset-entries 512
+
+set-max-listpack-entries 128
+set-max-listpack-value 64
+
+zset-max-listpack-entries 128
+zset-max-listpack-value 64
+
+# HyperLogLog 稀疏表示最大字节数（含 16 字节头），超过则转换为 dense 表示。
+hll-sparse-max-bytes 3000
+
+# Streams 节点最大字节数 / 最大条目数。
+stream-node-max-bytes 4096
+stream-node-max-entries 100
+
+# Active rehashing 配置（用于渐进式释放主哈希表的内存）。
+activerehashing yes
+
+# 客户端输出缓冲限制（normal, replica, pubsub）
+client-output-buffer-limit normal 0 0 0
+client-output-buffer-limit replica 256mb 64mb 60
+client-output-buffer-limit pubsub 32mb 8mb 60
+
+# 客户端查询缓冲限制（可用于支持巨大命令/参数）。
+# client-query-buffer-limit 1gb
+
+# 客户端集合占用内存过多时的“客户端驱逐”配置（maxmemory-clients）。
+# maxmemory-clients 1g 或 5%（基于 maxmemory）
+
+# 协议中 bulk 请求默认上限 512mb，可修改，但不得低于 1mb。
+# proto-max-bulk-len 512mb
+
+# HZ 值（内部周期频率，影响后台任务频率）。默认 10，可设 1..500（>100 通常不建议）。
+hz 10
+dynamic-hz yes
+
+# 子进程在重写 AOF 或保存 RDB 时是否每 4MB fsync 一次（减小延迟峰值）。
+aof-rewrite-incremental-fsync yes
+rdb-save-incremental-fsync yes
+
+# LFU 淘汰可调参数（lfu-log-factor, lfu-decay-time）。默认 lfu-log-factor 10, lfu-decay-time 1。
+# lfu-log-factor 10
+# lfu-decay-time 1
+
+# 每个事件循环周期接受的新连接最大数（TLS 独立配置）。
+# max-new-connections-per-cycle 10
+# max-new-tls-connections-per-cycle 1
+
+########################### ACTIVE DEFRAGMENTATION #######################
+
+# 在线碎片整理允许在运行时压缩内存碎片以回收内存（需要使用随源码提供的 jemalloc）。
+# 默认禁用，非必要不要开启。
+# activedefrag no
+# active-defrag-ignore-bytes 100mb
+# active-defrag-threshold-lower 10
+# active-defrag-threshold-upper 100
+# active-defrag-cycle-min 1
+# active-defrag-cycle-max 25
+# active-defrag-max-scan-fields 1000
+
+jemalloc-bg-thread yes
+
+# 可设置线程/进程与 CPU 的亲和性（taskset 样式）。
+# server-cpulist 0-7:2
+# bio-cpulist 1,3
+# aof-rewrite-cpulist 8-11
+# bgsave-cpulist 1,10-11
+
+# 在检测到系统处于不良状态时，Redis 可能发出警告或拒绝启动。可通过 ignore-warnings 抑制特定警告：
+# ignore-warnings ARM64-COW-BUG
