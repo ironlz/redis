@@ -2763,6 +2763,7 @@ void makeThreadKillable(void) {
     pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 }
 
+// 初始化 Redis 服务器各项全局状态、数据结构、监听端口等。
 void initServer(void) {
     int j;
 
@@ -7589,7 +7590,9 @@ int main(int argc, char **argv) {
         serverLog(LL_NOTICE, "Configuration loaded");
     }
 
+    // 调用 initServer() 初始化 Redis 服务器各项全局状态、数据结构、监听端口等。
     initServer();
+    // 创建 PID 文件、设置进程标题、检查监听端口 backlog。
     if (background || server.pidfile) createPidFile();
     if (server.set_proc_title) redisSetProcTitle(NULL);
     redisAsciiArt();
@@ -7597,6 +7600,7 @@ int main(int argc, char **argv) {
     if (server.cluster_enabled) {
         clusterInit();
     }
+    // 初始化集群、模块、ACL、监听器等子系统。
     if (!server.sentinel_mode) {
         moduleInitModulesSystemLast();
         moduleLoadInternalModules();
