@@ -7597,10 +7597,11 @@ int main(int argc, char **argv) {
     if (server.set_proc_title) redisSetProcTitle(NULL);
     redisAsciiArt();
     checkTcpBacklogSettings();
+    // 初始化集群
     if (server.cluster_enabled) {
         clusterInit();
     }
-    // 初始化集群、模块、ACL、监听器等子系统。
+    // 模块、ACL、监听器等子系统。
     if (!server.sentinel_mode) {
         moduleInitModulesSystemLast();
         moduleLoadInternalModules();
@@ -7608,6 +7609,7 @@ int main(int argc, char **argv) {
     }
     ACLLoadUsersAtStartup();
     initListeners();
+    // 集群和Server的第二段初始化：启动网络监听等操作
     if (server.cluster_enabled) {
         clusterInitLast();
     }
@@ -7616,6 +7618,7 @@ int main(int argc, char **argv) {
     if (!server.sentinel_mode) {
         /* Things not needed when running in Sentinel mode. */
         serverLog(LL_NOTICE,"Server initialized");
+        // 加载AOF
         aofLoadManifestFromDisk();
         loadDataFromDisk();
         aofOpenIfNeededOnServerStart();
@@ -7623,9 +7626,11 @@ int main(int argc, char **argv) {
         /* While loading data, we delay applying "appendonly" config change.
          * If there was a config change while we were inside loadDataFromDisk()
          * above, we'll apply it here. */
+        // 数据加载完后应用aof配置
         applyAppendOnlyConfig();
 
         if (server.cluster_enabled) {
+            // 集群模式下只允许使用DB0
             serverAssert(verifyClusterConfigWithData() == C_OK);
         }
 
@@ -7658,10 +7663,13 @@ int main(int argc, char **argv) {
         serverLog(LL_WARNING,"WARNING: You specified a maxmemory value that is less than 1MB (current value is %llu bytes). Are you sure this is what you really want?", server.maxmemory);
     }
 
+    // 设置cpu亲和性、内存oom_score_adj
     redisSetCpuAffinity(server.server_cpulist);
     setOOMScoreAdj(-1);
 
+    // 启动事件循环
     aeMain(server.el);
+    // 启动清理事件循环
     aeDeleteEventLoop(server.el);
     return 0;
 }
